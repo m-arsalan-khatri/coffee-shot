@@ -1,0 +1,40 @@
+name: Bug report
+description: Something isn't working
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you expected, and what you got instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Order a double shot
+        2. Close the lid for 10 minutes
+        3. ...
+    validations:
+      required: true
+
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version and chip
+      placeholder: "macOS 15.2, Apple M3"
+    validations:
+      required: true
+
+  - type: textarea
+    id: assertions
+    attributes:
+      label: Output of `pmset -g assertions | grep caffeinate`
+      description: >
+        Run this while a shot is meant to be running. It shows what is actually
+        holding your Mac awake, and separates "the app is confused" from "the
+        assertion was never taken" — which are very different bugs.
+      render: text

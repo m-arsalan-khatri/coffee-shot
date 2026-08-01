@@ -102,8 +102,12 @@ open "build/Coffee Shot.app"
 ```
 
 Produces a universal (arm64 + x86_64) ad-hoc signed bundle. The whole app is a
-single Swift file — [`Sources/main.swift`](Sources/main.swift), about 200 lines
-of AppKit.
+single Swift file — [`Sources/main.swift`](Sources/main.swift), about 230 lines
+of AppKit, built in Swift 6 language mode so the compiler proves the timer and
+process-exit callbacks hop to the main actor correctly.
+
+`./test.sh` verifies the result: shell lint, a warnings-as-errors compile, and
+bundle checks (signed, universal, `Info.plist` consistent with what's on disk).
 
 ## Contributing
 

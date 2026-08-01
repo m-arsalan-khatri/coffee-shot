@@ -6,7 +6,8 @@ that way.
 
 ## Getting set up
 
-You need the Xcode Command Line Tools (`xcode-select --install`). Nothing else.
+You need the Xcode Command Line Tools (`xcode-select --install`), version 16 or
+newer — the app builds in Swift 6 language mode. Nothing else.
 
 ```bash
 git clone https://github.com/arsalaniqbal-dl/coffee-shot.git
@@ -18,10 +19,21 @@ open "build/Coffee Shot.app"
 Rebuilding while a copy is running leaves a stale mug in the menu bar, so quit
 the old one first (`pkill -f MacOS/CoffeeShot`).
 
-## Testing a change
+## Before opening a PR
 
-There are no automated tests — the app is almost entirely UI and power
-assertions. Check by hand:
+```bash
+./build.sh && ./test.sh
+```
+
+`test.sh` is what CI runs: it lints the shell scripts, compiles with warnings as
+errors under Swift 6, and verifies the built bundle is signed, universal and
+internally consistent. Install `shellcheck` (`brew install shellcheck`) to get
+the lint locally — it's skipped if absent.
+
+## Testing behaviour by hand
+
+`test.sh` is static only: a menu bar app needs a logged-in GUI session, which CI
+doesn't have. So behaviour is checked by hand:
 
 1. Order a shot from the menu; confirm the mug fills in and the countdown ticks
    while the menu is open.

@@ -42,16 +42,26 @@ curl -fsSL "https://github.com/${REPO}/archive/refs/heads/main.tar.gz" \
 say "Pulling the shot…"
 ( cd "$TMP" && ./build.sh >/dev/null )
 
+# Nothing below this point is reversible, so confirm the build actually produced
+# something before going near an existing install.
+[ -d "$TMP/build/${APP_NAME}.app" ] || die "Build finished but produced no app bundle."
+
 # Replacing a running app leaves a zombie in the menu bar, so quit it first.
-# CaffeinateToggle is this app's former name — clear it out so upgraders don't
-# end up with two icons in the menu bar.
-for PROC in CoffeeShot CaffeinateToggle; do
-	if pgrep -f "MacOS/${PROC}" >/dev/null 2>&1; then
-		pkill -f "MacOS/${PROC}" || true
+# "Caffeinate Toggle" is this app's former name — clear it out too, so upgraders
+# don't end up with two mugs. Patterns are full bundle paths rather than bare
+# binary names: pkill -f matches whole command lines, and a bare name would also
+# match, say, an editor that happens to have the file open.
+for APP in "${APP_NAME}.app/Contents/MacOS/CoffeeShot" \
+           "Caffeinate Toggle.app/Contents/MacOS/CaffeinateToggle"; do
+	if pgrep -f "$APP" >/dev/null 2>&1; then
+		pkill -f "$APP" || true
 		sleep 1
 	fi
 done
-rm -rf "${DEST}/Caffeinate Toggle.app" "$HOME/Applications/Caffeinate Toggle.app"
+
+for DIR in "${DEST:?}" "${HOME:?}/Applications"; do
+	rm -rf "${DIR}/Caffeinate Toggle.app"
+done
 
 say "Serving…"
 rm -rf "${DEST:?}/${APP_NAME}.app"

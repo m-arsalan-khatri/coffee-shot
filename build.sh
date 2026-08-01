@@ -12,14 +12,19 @@ BIN="CoffeeShot"
 rm -rf "$BUNDLE"
 mkdir -p "$BUNDLE/Contents/MacOS" "$BUNDLE/Contents/Resources"
 
-# Build both architectures and lipo them together, so the same .app runs on
-# Apple Silicon and Intel Macs when shared.
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
+# Swift 6 language mode: the app touches AppKit from timer and process-exit
+# callbacks, and this makes the compiler prove those hops are correct rather
+# than trusting that they are. Needs Swift 6.0+ (Xcode 16 tools or newer).
+#
+# Both architectures are built and lipo'd together so the same bundle runs on
+# Apple Silicon and Intel.
 for ARCH in arm64 x86_64; do
 	swiftc \
 		-O \
+		-swift-version 6 \
 		-target "${ARCH}-apple-macos13.0" \
 		-framework AppKit \
 		-o "$TMP/$BIN-$ARCH" \
@@ -30,8 +35,10 @@ lipo -create -output "$BUNDLE/Contents/MacOS/$BIN" "$TMP/$BIN-arm64" "$TMP/$BIN-
 
 cp Info.plist "$BUNDLE/Contents/Info.plist"
 
-# Ad-hoc signature: gives the app a stable identity so macOS remembers its
-# permissions and doesn't re-prompt on every rebuild.
-codesign --force --sign - "$BUNDLE" >/dev/null 2>&1 || true
+# lipo strips the per-slice signatures swiftc applied, and macOS refuses to run
+# an unsigned binary on Apple Silicon. This has to succeed — a silent failure
+# here produces a bundle that simply will not launch.
+codesign --force --sign - "$BUNDLE"
+codesign --verify --strict "$BUNDLE"
 
 echo "Built $BUNDLE"

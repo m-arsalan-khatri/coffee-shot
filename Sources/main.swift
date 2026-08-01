@@ -7,6 +7,7 @@ import AppKit
 // own timer owns expiry (rather than `caffeinate -t`) so the countdown shown in
 // the menu and the real assertion can never drift apart.
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // MARK: - Presets
@@ -16,6 +17,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         ("Double Shot · 10 hours", 10),
     ]
 
+    // Built once. A menu bar app has no business re-decoding an image every
+    // time it redraws.
+    private static let idleImage = symbol("mug", fallback: "cup.and.saucer", label: "Coffee Shot: decaf")
+    private static let activeImage = symbol("mug.fill", fallback: "cup.and.saucer.fill", label: "Coffee Shot: buzzing")
+
+    private static func symbol(_ name: String, fallback: String, label: String) -> NSImage? {
+        // `mug` is macOS 14+; fall back to the cup glyph on older systems.
+        let image = NSImage(systemSymbolName: name, accessibilityDescription: label)
+            ?? NSImage(systemSymbolName: fallback, accessibilityDescription: label)
+        image?.isTemplate = true
+        return image
+    }
+
     // MARK: - State
 
     private var statusItem: NSStatusItem!
@@ -24,7 +38,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var caffeinate: Process?
     private var expiry: Date?
     private var activeHours: Double?
-    private var tick: Timer?
+
+    // Fires once, at expiry. A repeating one-second timer would wake the CPU
+    // 36,000 times over a double shot to redraw an icon that hasn't changed.
+    private var expiryTimer: Timer?
+    // One second, and only while the menu is actually open, so the countdown
+    // animates without costing anything the rest of the time.
+    private var menuTimer: Timer?
 
     private var keepDisplayOn: Bool {
         get { UserDefaults.standard.object(forKey: "keepDisplayOn") as? Bool ?? true }
@@ -43,14 +63,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: - Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // A second copy would put a second mug in the menu bar with no way to
+        // tell them apart, so defer to the one already running.
+        let bundleID = Bundle.main.bundleIdentifier ?? ""
+        let others = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+            .filter { $0 != .current }
+        if !others.isEmpty {
+            NSApp.terminate(nil)
+            return
+        }
+
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        statusItem.button?.setAccessibilityLabel("Coffee Shot")
         buildMenu()
         statusItem.menu = menu
         refresh()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        stopCaffeinate()
+        stop()
     }
 
     private func buildMenu() {
@@ -68,7 +99,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return item
         }
 
-        turnOffItem.action = #selector(turnOff)
+        turnOffItem.action = #selector(cutOff)
         turnOffItem.target = self
         menu.addItem(turnOffItem)
 
@@ -84,8 +115,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(quit)
     }
 
+    // MARK: - Menu delegate
+
     func menuWillOpen(_ menu: NSMenu) {
         refresh()
+        guard isActive else { return }
+        let timer = Timer(timeInterval: 1, repeats: true) { _ in
+            Task { @MainActor [weak self] in self?.refresh() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        menuTimer = timer
+    }
+
+    func menuDidClose(_ menu: NSMenu) {
+        menuTimer?.invalidate()
+        menuTimer = nil
     }
 
     // MARK: - Actions
@@ -95,35 +139,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Ordering the shot you're already on cuts you off, so the menu doubles
         // as an on/off toggle without a separate mode.
         if isActive, activeHours == preset.hours {
-            stopCaffeinate()
+            stop()
         } else {
-            startCaffeinate(hours: preset.hours)
+            start(seconds: preset.hours * 3600, preset: preset.hours)
         }
         refresh()
     }
 
-    @objc private func turnOff() {
-        stopCaffeinate()
+    @objc private func cutOff() {
+        stop()
         refresh()
     }
 
     @objc private func toggleDisplay() {
         keepDisplayOn.toggle()
-        // Respawn with the new flags, preserving whatever time is left.
+        // Respawn with the new flags, keeping whatever time is left on the clock.
         if isActive, let expiry {
-            let remaining = expiry.timeIntervalSinceNow
-            let hours = activeHours
-            startCaffeinate(hours: max(remaining, 1) / 3600)
-            activeHours = hours          // keep the preset's checkmark accurate
-            self.expiry = Date().addingTimeInterval(max(remaining, 1))
+            start(seconds: max(expiry.timeIntervalSinceNow, 1), preset: activeHours)
         }
         refresh()
     }
 
     // MARK: - caffeinate control
 
-    private func startCaffeinate(hours: Double) {
-        stopCaffeinate()
+    private func start(seconds: TimeInterval, preset: Double?) {
+        stop()
 
         var args = ["-i", "-m"]                 // no idle sleep, no disk idle
         if keepDisplayOn { args.append("-d") }  // and optionally no display sleep
@@ -132,12 +172,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/caffeinate")
         process.arguments = args
-        process.terminationHandler = { [weak self] _ in
-            DispatchQueue.main.async {
-                guard let self, self.caffeinate?.isRunning != true else { return }
-                self.clearState()
-                self.refresh()
-            }
+        process.terminationHandler = { _ in
+            Task { @MainActor [weak self] in self?.caffeinateDidExit() }
         }
 
         do {
@@ -149,17 +185,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         caffeinate = process
-        activeHours = hours
-        expiry = Date().addingTimeInterval(hours * 3600)
+        activeHours = preset
+        let deadline = Date().addingTimeInterval(seconds)
+        expiry = deadline
 
-        tick?.invalidate()
-        let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in self?.onTick() }
-        // .common keeps the countdown ticking while the menu is open and tracking.
+        // Scheduled against a wall-clock date, so sleeping through the deadline
+        // still ends the session on the next wake.
+        let timer = Timer(fire: deadline, interval: 0, repeats: false) { _ in
+            Task { @MainActor [weak self] in
+                self?.stop()
+                self?.refresh()
+            }
+        }
         RunLoop.main.add(timer, forMode: .common)
-        tick = timer
+        expiryTimer = timer
     }
 
-    private func stopCaffeinate() {
+    private func stop() {
         if let process = caffeinate, process.isRunning {
             process.terminationHandler = nil
             process.terminate()
@@ -171,14 +213,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         caffeinate = nil
         expiry = nil
         activeHours = nil
-        tick?.invalidate()
-        tick = nil
+        expiryTimer?.invalidate()
+        expiryTimer = nil
     }
 
-    private func onTick() {
-        if let expiry, Date() >= expiry {
-            stopCaffeinate()
-        }
+    /// caffeinate died without us asking — killed externally, or it failed.
+    private func caffeinateDidExit() {
+        guard caffeinate?.isRunning != true else { return }
+        clearState()
         refresh()
     }
 
@@ -187,12 +229,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func refresh() {
         let active = isActive
 
-        let label = active ? "Buzzing" : "Decaf"
-        // `mug` is macOS 14+; fall back to the cup glyph on older systems.
-        let image = NSImage(systemSymbolName: active ? "mug.fill" : "mug", accessibilityDescription: label)
-            ?? NSImage(systemSymbolName: active ? "cup.and.saucer.fill" : "cup.and.saucer", accessibilityDescription: label)
-        image?.isTemplate = true
-        statusItem.button?.image = image
+        statusItem.button?.image = active ? Self.activeImage : Self.idleImage
         statusItem.button?.toolTip = active ? "Buzzing — \(remainingText()) left" : "Coffee Shot — decaf"
 
         headerItem.title = active ? "Buzzing — \(remainingText()) left" : "Decaf"
