@@ -12,8 +12,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: - Presets
 
     private static let presets: [(title: String, hours: Double)] = [
-        ("Keep Awake for 6 Hours", 6),
-        ("Keep Awake for 10 Hours", 10),
+        ("One Shot · 6 hours", 6),
+        ("Double Shot · 10 hours", 10),
     ]
 
     // MARK: - State
@@ -35,10 +35,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     // MARK: - Menu items
 
-    private let headerItem = NSMenuItem(title: "Sleep Allowed", action: nil, keyEquivalent: "")
+    private let headerItem = NSMenuItem(title: "Decaf", action: nil, keyEquivalent: "")
     private var presetItems: [NSMenuItem] = []
-    private let turnOffItem = NSMenuItem(title: "Turn Off", action: nil, keyEquivalent: "")
-    private let displayItem = NSMenuItem(title: "Keep Display Awake", action: nil, keyEquivalent: "")
+    private let turnOffItem = NSMenuItem(title: "Cut Me Off", action: nil, keyEquivalent: "")
+    private let displayItem = NSMenuItem(title: "Screen Stays Lit", action: nil, keyEquivalent: "")
 
     // MARK: - Lifecycle
 
@@ -80,7 +80,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         menu.addItem(.separator())
 
-        let quit = NSMenuItem(title: "Quit Caffeinate Toggle", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let quit = NSMenuItem(title: "Quit Coffee Shot", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         menu.addItem(quit)
     }
 
@@ -92,7 +92,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func selectPreset(_ sender: NSMenuItem) {
         let preset = Self.presets[sender.tag]
-        // Clicking the already-running preset turns it off, so the menu doubles
+        // Ordering the shot you're already on cuts you off, so the menu doubles
         // as an on/off toggle without a separate mode.
         if isActive, activeHours == preset.hours {
             stopCaffeinate()
@@ -143,7 +143,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         do {
             try process.run()
         } catch {
-            NSLog("Caffeinate Toggle: failed to launch caffeinate — \(error)")
+            NSLog("Coffee Shot: failed to launch caffeinate — \(error)")
             clearState()
             return
         }
@@ -187,15 +187,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func refresh() {
         let active = isActive
 
-        let label = active ? "Keeping Mac awake" : "Sleep allowed"
+        let label = active ? "Buzzing" : "Decaf"
         // `mug` is macOS 14+; fall back to the cup glyph on older systems.
         let image = NSImage(systemSymbolName: active ? "mug.fill" : "mug", accessibilityDescription: label)
             ?? NSImage(systemSymbolName: active ? "cup.and.saucer.fill" : "cup.and.saucer", accessibilityDescription: label)
         image?.isTemplate = true
         statusItem.button?.image = image
-        statusItem.button?.toolTip = active ? "Keeping your Mac awake — \(remainingText()) left" : "Caffeinate Toggle — off"
+        statusItem.button?.toolTip = active ? "Buzzing — \(remainingText()) left" : "Coffee Shot — decaf"
 
-        headerItem.title = active ? "Awake — \(remainingText()) left" : "Sleep Allowed"
+        headerItem.title = active ? "Buzzing — \(remainingText()) left" : "Decaf"
 
         for (index, item) in presetItems.enumerated() {
             item.state = (active && activeHours == Self.presets[index].hours) ? .on : .off

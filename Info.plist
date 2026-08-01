@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleName</key>
-	<string>Caffeinate Toggle</string>
+	<string>Coffee Shot</string>
 	<key>CFBundleDisplayName</key>
-	<string>Caffeinate Toggle</string>
+	<string>Coffee Shot</string>
 	<key>CFBundleExecutable</key>
-	<string>CaffeinateToggle</string>
+	<string>CoffeeShot</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.arsalaniqbal.caffeinatetoggle</string>
+	<string>com.arsalaniqbal.coffeeshot</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

@@ -1,13 +1,13 @@
 #!/bin/bash
-# Builds "Caffeinate Toggle.app" into ./build. Requires only the Xcode
-# Command Line Tools — no Xcode project, no dependencies.
+# Pulls a fresh shot: builds "Coffee Shot.app" into ./build. Requires only the
+# Xcode Command Line Tools — no Xcode project, no dependencies.
 set -euo pipefail
 
 cd "$(dirname "$0")"
 
-APP_NAME="Caffeinate Toggle"
+APP_NAME="Coffee Shot"
 BUNDLE="build/${APP_NAME}.app"
-BIN="CaffeinateToggle"
+BIN="CoffeeShot"
 
 rm -rf "$BUNDLE"
 mkdir -p "$BUNDLE/Contents/MacOS" "$BUNDLE/Contents/Resources"

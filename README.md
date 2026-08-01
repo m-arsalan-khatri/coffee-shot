@@ -1,28 +1,30 @@
-# Caffeinate Toggle
+# Coffee Shot
+
+**Two shots. Ten hours. No sleep.**
 
 A menu-bar-only macOS app that keeps your Mac awake for a fixed stretch — built
 for long unattended agent runs, builds and test suites that idle sleep would
 otherwise kill mid-flight.
 
-No window, no preferences pane, no Dock icon. Just a mug in the menu bar and a
-dropdown.
+No window, no preferences pane, no Dock icon. Just a mug in the menu bar. Order
+a shot, get back to work.
 
 ```
-☕ Awake — 5:42:17 left
+☕ Buzzing — 5:42:17 left
    ─────────────────────
- ✓ Keep Awake for 6 Hours
-   Keep Awake for 10 Hours
-   Turn Off
+ ✓ One Shot · 6 hours
+   Double Shot · 10 hours
+   Cut Me Off
    ─────────────────────
- ✓ Keep Display Awake
+ ✓ Screen Stays Lit
    ─────────────────────
-   Quit Caffeinate Toggle
+   Quit Coffee Shot
 ```
 
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/arsalaniqbal-dl/caffeinate-toggle/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/arsalaniqbal-dl/coffee-shot/main/install.sh | bash
 ```
 
 That's it — the app is installed and running in your menu bar.
@@ -33,23 +35,32 @@ no Gatekeeper warning to click through. It needs the Xcode Command Line Tools
 (`xcode-select --install`) and nothing else — no Xcode, no package manager, no
 dependencies.
 
-Piping a script to `bash` deserves a read first —
-[here it is](install.sh).
+Piping a script to `bash` deserves a read first — [here it is](install.sh).
 
-**Uninstall:** quit from the menu, then `rm -rf "/Applications/Caffeinate Toggle.app"`.
+**Uninstall:** quit from the menu, then `rm -rf "/Applications/Coffee Shot.app"`.
 
-## Usage
+## The menu
 
-- Outline mug = sleep allowed. Filled mug = keeping the Mac awake.
-- The header counts down live while the menu is open.
-- Clicking the preset that's already running turns it off, so the menu doubles
-  as the on/off toggle. `Turn Off` appears only while active.
-- `Keep Display Awake` is remembered between launches. Toggling it mid-session
-  respawns the assertion without losing the time remaining.
+| Item | What it does |
+|---|---|
+| **Decaf** / **Buzzing — 5:42:17 left** | Status header, not a button. Counts down live while the menu is open. |
+| **One Shot · 6 hours** | Keeps the Mac awake for six hours. |
+| **Double Shot · 10 hours** | Same, for ten. |
+| **Cut Me Off** | Ends the session early. Only appears while a shot is running. |
+| **Screen Stays Lit** | Whether the display stays on too. Remembered between launches. |
+
+Outline mug = decaf. Filled mug = buzzing.
+
+A checkmark marks the shot you're on, and ordering that same shot again cuts you
+off — so the menu is its own toggle. You can switch from one shot to a double
+mid-session without stopping first.
+
+Uncheck **Screen Stays Lit** for overnight runs: the Mac keeps working, the
+display goes dark. Toggling it mid-session doesn't cost you any remaining time.
 
 ## How it works
 
-The app spawns `/usr/bin/caffeinate` with:
+Coffee Shot spawns `/usr/bin/caffeinate` with:
 
 | Flag | Assertion | Effect |
 |---|---|---|
@@ -67,7 +78,7 @@ app crashes or is force-killed. There's no way to end up with an orphaned
 **Expiry is owned by the app's timer, not `caffeinate -t`.** This keeps the
 countdown in the menu and the real assertion from ever drifting apart.
 
-Verify what's actually holding your Mac awake at any time:
+Check what's actually keeping your Mac up at any time:
 
 ```bash
 pmset -g assertions
@@ -76,17 +87,18 @@ pmset -g assertions
 ### Known limitation
 
 `caffeinate` prevents *idle* sleep, not *lid-close* sleep. Closing the lid on a
-laptop still sleeps it, Apple Silicon especially. Leave the lid open or run
-clamshell with an external display. Also note `-s` (used by some other tools)
-only takes effect on AC power — this app uses `-i`, which works on battery too.
+laptop still sleeps it, Apple Silicon especially — no amount of espresso fixes
+that. Leave the lid open or run clamshell with an external display. Also note
+`-s` (used by some other tools) only takes effect on AC power; Coffee Shot uses
+`-i`, which works on battery too.
 
-## Building it yourself
+## Pulling your own
 
 ```bash
-git clone https://github.com/arsalaniqbal-dl/caffeinate-toggle.git
-cd caffeinate-toggle
+git clone https://github.com/arsalaniqbal-dl/coffee-shot.git
+cd coffee-shot
 ./build.sh
-open "build/Caffeinate Toggle.app"
+open "build/Coffee Shot.app"
 ```
 
 Produces a universal (arm64 + x86_64) ad-hoc signed bundle. The whole app is a
@@ -95,9 +107,9 @@ of AppKit.
 
 ## Contributing
 
-Issues and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md).
-It's a small app on purpose, so the bar for new features is "does this still fit
-in one dropdown".
+Issues and pull requests welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). It's a
+small app on purpose, so the bar for new features is "does this still fit on one
+menu".
 
 ## License
 
