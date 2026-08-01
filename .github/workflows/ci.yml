@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Nothing here needs write access to the repo.
+permissions:
+  contents: read
+
+# A newer push makes an in-flight run irrelevant.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and verify
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: swift --version
+
+      - name: Install shellcheck
+        run: brew install shellcheck
+
+      # The installer builds from source on the user's machine, so a broken
+      # build.sh is a broken install for everyone. This is the check that
+      # matters most.
+      - name: Build
+        run: ./build.sh
+
+      - name: Verify
+        run: ./test.sh

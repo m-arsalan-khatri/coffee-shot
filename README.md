@@ -1,5 +1,7 @@
 # Coffee Shot
 
+[![CI](https://github.com/arsalaniqbal-dl/coffee-shot/actions/workflows/ci.yml/badge.svg)](https://github.com/arsalaniqbal-dl/coffee-shot/actions/workflows/ci.yml)
+
 **Two shots. Ten hours. No sleep.**
 
 A menu-bar-only macOS app that keeps your Mac awake for a fixed stretch — built
