@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://arsalaniqbal-dl.github.io/coffee-shot/sitemap.xml

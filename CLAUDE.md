@@ -18,6 +18,7 @@ sleep would otherwise kill mid-flight.
 Sources/main.swift   the entire app (~230 lines of AppKit)
 Info.plist           LSUIElement — no Dock icon, no window
 build.sh test.sh install.sh
+docs/                the landing page, served by GitHub Pages from main
 .github/workflows/ci.yml
 ```
 
@@ -61,6 +62,26 @@ this with a prebuilt binary in a Release without first solving notarization.
 
 `raw.githubusercontent.com` caches for a few minutes, so the one-liner can serve
 a stale `install.sh` immediately after a push.
+
+## The site
+
+`docs/` is the landing page, served by GitHub Pages from `main`. One
+self-contained `index.html` — inline CSS and JS, no build step, no fonts, no
+analytics, nothing loaded off-origin — which is also what lets it carry a strict
+CSP in a `<meta>` tag. Same rule as the app: no dependencies.
+
+`docs/og.png` is generated, not drawn. The source is `docs/og.source.html`;
+regenerate rather than editing the PNG:
+
+```bash
+cd docs && "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+  --headless=new --disable-gpu --force-device-scale-factor=1 \
+  --window-size=1200,630 --screenshot=og.png og.source.html
+```
+
+Chrome enforces a minimum window width, so a narrow `--window-size` crops
+instead of reflowing — to check mobile layout, load the page in a 390px-wide
+iframe and screenshot that.
 
 ## Testing
 

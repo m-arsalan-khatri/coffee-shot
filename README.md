@@ -3,6 +3,7 @@
 [![CI](https://github.com/arsalaniqbal-dl/coffee-shot/actions/workflows/ci.yml/badge.svg)](https://github.com/arsalaniqbal-dl/coffee-shot/actions/workflows/ci.yml)
 
 **Two shots. Ten hours. No sleep.**
+&nbsp;·&nbsp; [arsalaniqbal-dl.github.io/coffee-shot](https://arsalaniqbal-dl.github.io/coffee-shot/)
 
 A menu-bar-only macOS app that keeps your Mac awake for a fixed stretch — built
 for long unattended agent runs, builds and test suites that idle sleep would
