@@ -40,7 +40,12 @@ curl -fsSL "https://github.com/${REPO}/archive/refs/heads/main.tar.gz" \
 	| tar xz -C "$TMP" --strip-components=1
 
 say "Pulling the shot…"
-( cd "$TMP" && ./build.sh >/dev/null )
+# Quiet on success, but keep the log: a build failure here is the most likely
+# way this script fails, and "it didn't work" with no output is useless.
+if ! ( cd "$TMP" && ./build.sh ) >"$TMP/build.log" 2>&1; then
+	cat "$TMP/build.log" >&2
+	die "Build failed — the output above should say why."
+fi
 
 # Nothing below this point is reversible, so confirm the build actually produced
 # something before going near an existing install.
