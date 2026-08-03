@@ -1,9 +1,9 @@
 # Coffee Shot
 
-[![CI](https://github.com/arsalaniqbal-dl/coffee-shot/actions/workflows/ci.yml/badge.svg)](https://github.com/arsalaniqbal-dl/coffee-shot/actions/workflows/ci.yml)
+[![CI](https://github.com/m-arsalan-khatri/coffee-shot/actions/workflows/ci.yml/badge.svg)](https://github.com/m-arsalan-khatri/coffee-shot/actions/workflows/ci.yml)
 
 **Two shots. Ten hours. No sleep.**
-&nbsp;·&nbsp; [arsalaniqbal-dl.github.io/coffee-shot](https://arsalaniqbal-dl.github.io/coffee-shot/)
+&nbsp;·&nbsp; [m-arsalan-khatri.github.io/coffee-shot](https://m-arsalan-khatri.github.io/coffee-shot/)
 
 A menu-bar-only macOS app that keeps your Mac awake for a fixed stretch — built
 for long unattended agent runs, builds and test suites that idle sleep would
@@ -27,7 +27,7 @@ a shot, get back to work.
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/arsalaniqbal-dl/coffee-shot/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/m-arsalan-khatri/coffee-shot/main/install.sh | bash
 ```
 
 That's it — the app is installed and running in your menu bar.
@@ -98,7 +98,7 @@ that. Leave the lid open or run clamshell with an external display. Also note
 ## Pulling your own
 
 ```bash
-git clone https://github.com/arsalaniqbal-dl/coffee-shot.git
+git clone https://github.com/m-arsalan-khatri/coffee-shot.git
 cd coffee-shot
 ./build.sh
 open "build/Coffee Shot.app"

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Coffee Shot installer.
 #
-#   curl -fsSL https://raw.githubusercontent.com/arsalaniqbal-dl/coffee-shot/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/m-arsalan-khatri/coffee-shot/main/install.sh | bash
 #
 # Downloads the source, builds it locally with the Xcode Command Line Tools and
 # installs the app. Building locally is deliberate: apps compiled on your own
@@ -9,7 +9,7 @@
 # through the way there would be with a downloaded binary.
 set -euo pipefail
 
-REPO="arsalaniqbal-dl/coffee-shot"
+REPO="m-arsalan-khatri/coffee-shot"
 APP_NAME="Coffee Shot"
 
 say() { printf '\033[1m==>\033[0m %s\n' "$1"; }

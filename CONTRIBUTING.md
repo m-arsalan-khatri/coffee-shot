@@ -10,7 +10,7 @@ You need the Xcode Command Line Tools (`xcode-select --install`), version 16 or
 newer — the app builds in Swift 6 language mode. Nothing else.
 
 ```bash
-git clone https://github.com/arsalaniqbal-dl/coffee-shot.git
+git clone https://github.com/m-arsalan-khatri/coffee-shot.git
 cd coffee-shot
 ./build.sh
 open "build/Coffee Shot.app"
