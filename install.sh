@@ -1,7 +1,7 @@
 #!/bin/bash
 # Coffee Shot installer.
 #
-#   curl -fsSL https://raw.githubusercontent.com/m-arsalan-khatri/coffee-shot/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/m-arsalan-khatri/coffee-shot/v1.0.1/install.sh | bash
 #
 # Downloads the source, builds it locally with the Xcode Command Line Tools and
 # installs the app. Building locally is deliberate: apps compiled on your own
@@ -11,6 +11,23 @@ set -euo pipefail
 
 REPO="m-arsalan-khatri/coffee-shot"
 APP_NAME="Coffee Shot"
+
+# Pinned to an immutable release tag, never to a branch.
+#
+# The published one-liner fetches *this script* from the same tag, so the
+# installer and the source it builds come from one reviewed point in history.
+# If either followed main, then anyone who gained push access, for however few
+# minutes, would run code as you on every machine that installed in that
+# window: `curl | bash` hands them a shell, and a locally built app is never
+# quarantined, so Gatekeeper never gets a look either.
+#
+# A tag can still be force-moved by whoever holds the account, so tags in this
+# repository are covered by a ruleset forbidding updates and deletion. That is
+# what makes a pinned URL keep returning the same bytes.
+#
+# Releasing means: bump this, update the one-liner in README.md and
+# docs/index.html, commit, then tag.
+VERSION="v1.0.1"
 
 say() { printf '\033[1m==>\033[0m %s\n' "$1"; }
 die() { printf '\033[1;31mError:\033[0m %s\n' "$1" >&2; exit 1; }
@@ -36,8 +53,14 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
 say "Sourcing the beans…"
-curl -fsSL "https://github.com/${REPO}/archive/refs/heads/main.tar.gz" \
-	| tar xz -C "$TMP" --strip-components=1
+# refs/tags, not refs/heads. No checksum is pinned beside it on purpose:
+# GitHub builds these tarballs on demand and has changed their byte output
+# before, silently breaking every hardcoded hash that relied on them. The
+# integrity guarantee here is the protected tag, not a digest.
+if ! curl -fsSL "https://github.com/${REPO}/archive/refs/tags/${VERSION}.tar.gz" \
+	| tar xz -C "$TMP" --strip-components=1; then
+	die "Could not download ${VERSION}. See https://github.com/${REPO}/releases"
+fi
 
 say "Pulling the shot…"
 # Quiet on success, but keep the log: a build failure here is the most likely

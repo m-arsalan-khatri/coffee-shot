@@ -27,10 +27,17 @@ a shot, get back to work.
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/m-arsalan-khatri/coffee-shot/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/m-arsalan-khatri/coffee-shot/v1.0.1/install.sh | bash
 ```
 
 That's it — the app is installed and running in your menu bar.
+
+That URL is pinned to a release tag rather than a branch, and the script builds
+the source from the same tag, so nothing in the install path follows a moving
+branch. Tags here are covered by a repository ruleset that blocks updating or
+deleting them, which is what lets a pinned URL keep returning the same bytes.
+Rather not pipe a URL into `bash`? Clone the repo, run `./build.sh`, and move
+the bundle it leaves in `build/` into `/Applications` yourself.
 
 The installer builds from source on your machine rather than downloading a
 binary. That's deliberate: locally built apps are never quarantined, so there's
