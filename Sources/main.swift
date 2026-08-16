@@ -78,6 +78,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         buildMenu()
         statusItem.menu = menu
         refresh()
+
+        // The expiry timer stalls for the duration of a system sleep, so every
+        // wake is a chance to find that the shot should already have ended.
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(systemDidWake),
+            name: NSWorkspace.didWakeNotification,
+            object: nil
+        )
+    }
+
+    @objc private func systemDidWake() {
+        revalidateExpiry()
+        refresh()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -118,8 +132,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: - Menu delegate
 
     func menuWillOpen(_ menu: NSMenu) {
+        // Cheap second line of defence behind the wake notification: whatever
+        // else happened, the menu never opens on a countdown that has run out.
+        revalidateExpiry()
         refresh()
         guard isActive else { return }
+        // A menuWillOpen that never gets its matching menuDidClose would strand
+        // this timer ticking once a second for the life of the app.
+        menuTimer?.invalidate()
         let timer = Timer(timeInterval: 1, repeats: true) { _ in
             Task { @MainActor [weak self] in self?.refresh() }
         }
@@ -188,17 +208,48 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         activeHours = preset
         let deadline = Date().addingTimeInterval(seconds)
         expiry = deadline
+        armExpiryTimer(at: deadline)
+    }
 
-        // Scheduled against a wall-clock date, so sleeping through the deadline
-        // still ends the session on the next wake.
+    /// Arms the single-shot expiry timer.
+    ///
+    /// Passing a `Date` is not the same as expiring on the wall clock. The run
+    /// loop resolves the date to an interval and then counts it down on a clock
+    /// that stops while the Mac is asleep, so a shot spanning a sleep runs long
+    /// by however long the machine was out — and `caffeinate` holds its
+    /// assertion for every extra minute. `systemDidWake` re-arms to absorb the
+    /// drift; `expire` is what actually rules on whether time is up.
+    private func armExpiryTimer(at deadline: Date) {
+        expiryTimer?.invalidate()
         let timer = Timer(fire: deadline, interval: 0, repeats: false) { _ in
-            Task { @MainActor [weak self] in
-                self?.stop()
-                self?.refresh()
-            }
+            Task { @MainActor [weak self] in self?.expire() }
         }
         RunLoop.main.add(timer, forMode: .common)
         expiryTimer = timer
+    }
+
+    /// The wall clock decides when a shot is over, not whichever timer fired.
+    private func expire() {
+        guard let expiry else { return }
+        guard expiry.timeIntervalSinceNow <= 0 else {
+            // Fired ahead of the deadline — put the rest of the time back.
+            armExpiryTimer(at: expiry)
+            return
+        }
+        stop()
+        refresh()
+    }
+
+    /// Re-settles the session against the wall clock. Sleeping past a deadline
+    /// has to end the shot at the next wake rather than whenever the stalled
+    /// timer catches up, and a shorter sleep has to leave the countdown honest.
+    private func revalidateExpiry() {
+        guard isActive, let expiry else { return }
+        if expiry.timeIntervalSinceNow <= 0 {
+            stop()
+        } else {
+            armExpiryTimer(at: expiry)
+        }
     }
 
     private func stop() {

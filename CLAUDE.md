@@ -37,18 +37,27 @@ These each have a reason that isn't obvious from the code alone.
 2. **Expiry is owned by the app's timer, not `caffeinate -t`** — so the
    countdown shown in the menu and the real assertion cannot drift apart.
 
-3. **The expiry timer fires once, scheduled against a wall-clock `Date`.** Do
-   not reintroduce a one-second repeating timer: it woke the CPU ~36,000 times
-   per double shot to redraw an unchanged icon, which is indefensible in an app
-   about power management. Scheduling by date also means sleeping through a
-   deadline still ends the session on the next wake. The one-second tick exists
-   only while the menu is open (`menuWillOpen` / `menuDidClose`).
+3. **The expiry timer fires once.** Do not reintroduce a one-second repeating
+   timer: it woke the CPU ~36,000 times per double shot to redraw an unchanged
+   icon, which is indefensible in an app about power management. The one-second
+   tick exists only while the menu is open (`menuWillOpen` / `menuDidClose`).
 
-4. **Swift 6 language mode.** The class is `@MainActor`; timer and process-exit
+4. **The wall clock decides expiry, not the timer that fired.** Handing
+   `Timer(fire:)` a `Date` does *not* buy wall-clock expiry: the run loop
+   resolves the date to an interval and counts it down on a clock that stops
+   while the Mac is asleep. A shot spanning a sleep therefore runs long by the
+   sleep duration — observed in the wild as a `caffeinate` holding
+   `PreventUserIdleSystemSleep` for 15h02m on a 10-hour maximum, with the menu
+   still reading "Buzzing". Hence `revalidateExpiry()` on
+   `NSWorkspace.didWakeNotification` and again on `menuWillOpen`, and `expire()`
+   re-arming rather than trusting the callback. Any new path that ends a session
+   goes through those, not straight to `stop()`.
+
+5. **Swift 6 language mode.** The class is `@MainActor`; timer and process-exit
    callbacks hop via `Task { @MainActor in }`. Building in Swift 5 mode fails —
    top-level code is only MainActor-isolated under Swift 6.
 
-5. **`codesign` after `lipo` must succeed.** `lipo` strips the per-slice
+6. **`codesign` after `lipo` must succeed.** `lipo` strips the per-slice
    signatures `swiftc` applies, and macOS refuses to run an unsigned binary on
    Apple Silicon. A silent failure here ships a bundle that simply won't launch,
    which is why it is fatal rather than `|| true`.
