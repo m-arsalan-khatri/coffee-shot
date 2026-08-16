@@ -27,7 +27,7 @@ a shot, get back to work.
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/m-arsalan-khatri/coffee-shot/v1.0.1/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/m-arsalan-khatri/coffee-shot/v1.0.2/install.sh | bash
 ```
 
 That's it — the app is installed and running in your menu bar.
