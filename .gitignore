@@ -1,3 +1,19 @@
 build/
 .DS_Store
 .claude/settings.local.json
+
+# Playwright MCP scratch — page snapshots and console logs left behind by
+# browser-driven checks of docs/index.html. Regenerated on demand.
+.playwright-mcp/
+
+# LinkedIn carousel: carousel.html plus its generated PDF and 2160×2160 PNGs,
+# and the post caption. Kept on disk, deliberately not in the repo. It is promo
+# collateral rather than product, it is ~5MB of generated binaries that every
+# clone would carry, and its copy describes v1.0.1 — "256 lines" and "one timer,
+# scheduled against a wall-clock date", the second of which invariant 4 exists
+# to correct. Regenerate from carousel.html if it is ever needed again.
+coffee-shot-carousel/
+
+# One-off slide exports superseded 37 minutes later by coffee-shot-carousel/png/.
+slide3.png
+slide5.png
