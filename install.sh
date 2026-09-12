@@ -1,7 +1,7 @@
 #!/bin/bash
 # Coffee Shot installer.
 #
-#   curl -fsSL https://raw.githubusercontent.com/m-arsalan-khatri/coffee-shot/v1.0.2/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/m-arsalan-khatri/coffee-shot/v1.1.0/install.sh | bash
 #
 # Downloads the source, builds it locally with the Xcode Command Line Tools and
 # installs the app. Building locally is deliberate: apps compiled on your own
@@ -27,7 +27,7 @@ APP_NAME="Coffee Shot"
 #
 # Releasing means: bump this, update the one-liner in README.md and
 # docs/index.html, commit, then tag.
-VERSION="v1.0.2"
+VERSION="v1.1.0"
 
 say() { printf '\033[1m==>\033[0m %s\n' "$1"; }
 die() { printf '\033[1;31mError:\033[0m %s\n' "$1" >&2; exit 1; }
