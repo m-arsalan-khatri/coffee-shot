@@ -41,12 +41,18 @@ doesn't have. So behaviour is checked by hand:
    ```bash
    pmset -g assertions | grep caffeinate
    ```
-   You should see `PreventUserIdleSystemSleep` and `PreventDiskIdle`, plus
-   `PreventUserIdleDisplaySleep` when "Screen Stays Lit" is checked.
+   You should see `PreventUserIdleSystemSleep` and `PreventDiskIdle`, and —
+   only if you've checked "Screen Stays Lit", which is off by default —
+   `PreventUserIdleDisplaySleep`.
 3. Cut yourself off and confirm the assertion disappears from `pmset`.
 4. Force-quit the app mid-shot (`pkill -9 -f MacOS/CoffeeShot`) and confirm no
    `caffeinate` process survives — this is what `-w <pid>` guarantees, and it's
    the most important property to not break.
+5. Confirm the battery floor cuts a shot short. Waiting for a real battery to
+   fall to 10% isn't practical, so patch `batteryIsBelowFloor()` in an
+   instrumented copy to read a sentinel file, order a shot, then create the
+   file: the `caffeinate` child should be gone within a second or two and the
+   header should read "Decaf — battery ran low".
 
 ## Scope
 

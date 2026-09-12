@@ -19,7 +19,7 @@ a shot, get back to work.
    Double Shot · 10 hours
    Cut Me Off
    ─────────────────────
- ✓ Screen Stays Lit
+   Screen Stays Lit
    ─────────────────────
    Quit Coffee Shot
 ```
@@ -57,7 +57,7 @@ Piping a script to `bash` deserves a read first — [here it is](install.sh).
 | **One Shot · 6 hours** | Keeps the Mac awake for six hours. |
 | **Double Shot · 10 hours** | Same, for ten. |
 | **Cut Me Off** | Ends the session early. Only appears while a shot is running. |
-| **Screen Stays Lit** | Whether the display stays on too. Remembered between launches. |
+| **Screen Stays Lit** | Whether the display stays on too. Off by default. Remembered between launches. |
 
 Outline mug = decaf. Filled mug = buzzing.
 
@@ -65,8 +65,22 @@ A checkmark marks the shot you're on, and ordering that same shot again cuts you
 off — so the menu is its own toggle. You can switch from one shot to a double
 mid-session without stopping first.
 
-Uncheck **Screen Stays Lit** for overnight runs: the Mac keeps working, the
-display goes dark. Toggling it mid-session doesn't cost you any remaining time.
+**Screen Stays Lit** is off by default, because the app is built for unattended
+runs and a lit display is the largest single draw on the battery — keeping the
+Mac awake doesn't require keeping the screen awake. Turn it on if you want the
+screen up too. Toggling it mid-session doesn't cost you any remaining time.
+
+## On battery
+
+A shot ends early if the battery falls to 10% while you're unplugged, and the
+header then reads **Decaf — battery ran low**. Ordering a shot below that
+doesn't start one.
+
+This is not fussiness. `caffeinate` outranks idle sleep all the way to 0%, so
+without a floor a six-hour shot on battery will happily run the Mac flat and
+take the unattended job it was protecting down with it — which is the exact
+opposite of the point. Cutting off at 10% lets the Mac sleep normally instead
+of dying.
 
 ## How it works
 
@@ -76,10 +90,10 @@ Coffee Shot spawns `/usr/bin/caffeinate` with:
 |---|---|---|
 | `-i` | `PreventUserIdleSystemSleep` | The Mac won't idle-sleep |
 | `-m` | `PreventDiskIdle` | Disks stay spun up |
-| `-d` | `PreventUserIdleDisplaySleep` | Display stays on (optional) |
+| `-d` | `PreventUserIdleDisplaySleep` | Display stays on (optional, off by default) |
 | `-w <pid>` | — | Child exits when the app exits |
 
-Two deliberate choices:
+Three deliberate choices:
 
 **`-w <our pid>`** means the power assertion is torn down by macOS even if the
 app crashes or is force-killed. There's no way to end up with an orphaned
@@ -87,6 +101,9 @@ app crashes or is force-killed. There's no way to end up with an orphaned
 
 **Expiry is owned by the app's timer, not `caffeinate -t`.** This keeps the
 countdown in the menu and the real assertion from ever drifting apart.
+
+**The battery can end a shot too.** Time is not the only way a session should
+end on a laptop — see [On battery](#on-battery).
 
 Check what's actually keeping your Mac up at any time:
 
@@ -112,7 +129,7 @@ open "build/Coffee Shot.app"
 ```
 
 Produces a universal (arm64 + x86_64) ad-hoc signed bundle. The whole app is a
-single Swift file — [`Sources/main.swift`](Sources/main.swift), about 230 lines
+single Swift file — [`Sources/main.swift`](Sources/main.swift), about 430 lines
 of AppKit, built in Swift 6 language mode so the compiler proves the timer and
 process-exit callbacks hop to the main actor correctly.
 

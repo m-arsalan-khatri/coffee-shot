@@ -15,7 +15,7 @@ sleep would otherwise kill mid-flight.
 ## Layout
 
 ```
-Sources/main.swift   the entire app (~230 lines of AppKit)
+Sources/main.swift   the entire app (~430 lines of AppKit)
 Info.plist           LSUIElement — no Dock icon, no window
 build.sh test.sh install.sh
 docs/                the landing page, served by GitHub Pages from main
@@ -51,13 +51,30 @@ These each have a reason that isn't obvious from the code alone.
    still reading "Buzzing". Hence `revalidateExpiry()` on
    `NSWorkspace.didWakeNotification` and again on `menuWillOpen`, and `expire()`
    re-arming rather than trusting the callback. Any new path that ends a session
-   goes through those, not straight to `stop()`.
+   *because of time* goes through those, not straight to `stop()`.
 
-5. **Swift 6 language mode.** The class is `@MainActor`; timer and process-exit
+5. **The battery is the other clock.** `caffeinate` outranks idle sleep all the
+   way down to 0%, so nothing in macOS stops a shot from running the machine
+   flat — and the unattended job the shot was protecting dies with it. Observed
+   in the wild: a six-hour shot ordered at 97% on battery, released on schedule
+   to the second six hours later, by which point the Mac was at 1% and went
+   straight into low-power sleep and then hibernation. The app was correct and
+   the laptop still died. Hence `batteryFloor` and `revalidateBattery()`, hung
+   off `IOPSNotificationCreateRunLoopSource` and re-checked on the same wake and
+   `menuWillOpen` paths as expiry. `start()` refuses below the floor rather than
+   pouring a shot the battery cannot pay for.
+
+6. **"Screen Stays Lit" defaults to off.** The app is for unattended runs, where
+   a lit display is the single largest draw and buys nothing — keeping the Mac
+   awake has never required keeping the screen awake. It was the `-d` in the
+   incident above that turned a long shot into a flat battery. Leave the toggle
+   (some people do want it), but not the default.
+
+7. **Swift 6 language mode.** The class is `@MainActor`; timer and process-exit
    callbacks hop via `Task { @MainActor in }`. Building in Swift 5 mode fails —
    top-level code is only MainActor-isolated under Swift 6.
 
-6. **`codesign` after `lipo` must succeed.** `lipo` strips the per-slice
+8. **`codesign` after `lipo` must succeed.** `lipo` strips the per-slice
    signatures `swiftc` applies, and macOS refuses to run an unsigned binary on
    Apple Silicon. A silent failure here ships a bundle that simply won't launch,
    which is why it is fatal rather than `|| true`.
@@ -102,6 +119,12 @@ compress the presets from hours to seconds and auto-order a shot on launch, then
 watch `pmset -g assertions`. Worth confirming: the assertion is taken with the
 right flags, released at expiry, leaves no orphan after `kill -9` on the app,
 and that the app survives its `caffeinate` being killed out from under it.
+
+The battery floor can't be tested by waiting for a real battery to drain, so
+patch `batteryIsBelowFloor()` in the instrumented copy to read a sentinel file
+and trip it on demand. That covers the cut-off plumbing; the reading itself is
+worth checking separately against `pmset -g batt`, since an `Unmanaged` rule
+applied the wrong way round in there would crash or leak rather than misreport.
 
 ## Conventions
 
